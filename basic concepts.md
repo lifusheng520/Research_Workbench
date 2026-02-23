@@ -237,7 +237,7 @@ $v_i$：输出向量
 $$P(x_1, x_2, \dots, x_T)
 = \prod_{t=1}^{T} P(x_t \mid x_1, \dots, x_{t-1})$$
 
-> 本质上：输入 ——> 词的概率分布
+> 本质上：输入一些 token → 模型给出下一个 token 的概率分布 → 选一个 token → 继续预测
 
 ## transformer 如何做生成
 1. Data Preparation
@@ -259,6 +259,7 @@ $$P(x_1, x_2, \dots, x_T)
         矩阵行数为词表的行数，列数取决于设计的模型宽度
     
       * positional encoding：由于 Transformer 的 Attention 机制是并行运算的（diff RNN），无法识别顺序。所以，必须在 embedding时，需要标注vector中每个 id 原本的位置信息，让模型知道“AB”和“BA”的区别。
+$$ E=Embedding(x_t)+PositionalEncoding(t)$$
 
 4.   Transformer 处理
 
@@ -270,17 +271,25 @@ $$P(x_1, x_2, \dots, x_T)
 
 * 对所有 历史位置的向量（已有且可见的向量） 做相似度计算，得到一个score向量
 
+* 通过Mask（掩码）保证模型不能看到未来的 token
+
+* 多头注意力（multi-head attention）并行捕捉不同语义，得到新的上下文表示（向量）。
+
 * 经过 softmax 后：得到一个score的概率分布向量/注意力权重向量 （和为1）
 
 * 输出新的上下文感知向量，作为下一层连接层的输入
 
 > 前馈网络（Feed-Forward Neural Network）
 
+每一层的 attention 输出会再经过一个两层 MLP，例如：
+$$FFN(x)=W_2  FUN(W_1 x + b_1) + b_2 $$
+
+
 > 重复几十层
 
 > 输出层
 
-* 产生 Logits（原始分数），得到下一个 token 的概率分布（向量）
+* 产生 Logits（原始分数），通过 softMax(x) 得到下一个 token 的概率分布（向量）, 表示词表中每个 token 的概率。
 
 > 模型根据概率选一个词（贪心、beam全局最优 或 top-k随机）
 
