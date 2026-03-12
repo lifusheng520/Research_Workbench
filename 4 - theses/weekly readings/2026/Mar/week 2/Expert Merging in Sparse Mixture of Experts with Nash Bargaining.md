@@ -163,7 +163,7 @@ E_{m}^{(l+1)} = E_{m}^{(l)} + \dfrac{\gamma}{N}\displaystyle\sum_{i=1}^{N} M_{i}
 > $$\begin{cases} E_m^{(l+1)} = E_m^{(l)} + \gamma \Delta 𝓔^{(l)} \\
 \hat{E}_m^{(l+1)} = E_m^{(l+1)} + \eta \sum_{i=1}^N M_i \cdot (s_i^{(l+1)} * \tau_i^{(l+1)}) \end{cases}$$
 
-* $\Delta 𝓔^{(l)} = ΔE^{(l)}$:
+* $\Delta 𝓔^{(l)} = \Delta \theta = ΔE^{(l)}$:
     $𝓔^{(l)}$ 指的是 第 l 层 base expert 的参数张量（或参数集合）（$E_m$） 
     $\Delta 𝓔^{(l)}$ 是对这个 base expert 参数的更新方向，但它的计算会利用所有专家的偏移 $\tau_i^{(l)}$
     
