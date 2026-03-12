@@ -266,9 +266,9 @@ E_m^{(j+1)} = E_m^{(j)} + \Re(\gamma \mu^{(j+1)}) \\
 
 
 > **算法 1 Expert Merging via Nash Bargaining**
-* 时间复杂度：$O(LN)$
+* 时间复杂度：$O(L[dN+dN^2+Solve_α+MergeCost])$
     
-    其中：L为SMoE的层数，N为当前层的专家数量
+    其中：L为SMoE的层数，N为当前层的专家数量，d为每个 expert 参数向量化后维度
     
 * router logits: 第 t 层的路由器（router）对每个 token 应该偏向哪个 expert打出来的一组原始分数
 * $H^{(t)} ∈ R^{B×S×N}$:
@@ -280,7 +280,7 @@ E_m^{(j+1)} = E_m^{(j)} + \Re(\gamma \mu^{(j+1)}) \\
 
 
 > **算法 2 NAMEx-Momentum**
-* 时间复杂度：$O(LN)$
+* 时间复杂度: $O(L[dN+dN^2+Solve_α])$
 * $T^{(t)}∈R^{B×S×D}$: 第 t 层的 token 表示序列（token sequence / hidden states），也就是这一层收到的输入特征张量
     B: batch size
     S: sequence length(每个样本中的 token 数)
