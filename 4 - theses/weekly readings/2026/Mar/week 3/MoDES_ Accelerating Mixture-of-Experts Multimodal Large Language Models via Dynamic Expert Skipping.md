@@ -7,7 +7,7 @@ title: 'MoDES: Accelerating Mixture-of-Experts Multimodal Large Language Models 
 
 源代码： https://github.com/ModelTC/MoDES
 
-> 这篇文章做的是 expert quit，在不改动模型参数的情况下，在推理时动态地决定“哪些参数不参与计算”
+> 这篇文章做的是 expert skipping，在不改动模型参数的情况下，在推理时动态地决定“哪些参数不参与计算”
 
 > 
 > 文章方法：动态专家跳过（Dynamic Expert Skipping）
@@ -42,13 +42,14 @@ title: 'MoDES: Accelerating Mixture-of-Experts Multimodal Large Language Models 
 > 全局调制局部门控（Globally-Modulated Local Gating）
 > $$\text{for: } i \in S^{(l)},\quad s_i^{(l)} = \alpha^{(l)} \cdot \pi_i^{(l)}, \quad \alpha^{(l)} = \frac{1}{N} \sum_{j=1}^{N} D_{\mathrm{KL}}\!\left(\mathrm{prob}_j || \mathrm{prob}^{(l)}_j\right)$$
 > 
-> 先在离线阶段计算每一层的全局重要性 $α^{(l)}$，推理阶段直接使用预先算好的 $\alpha^{(l)}$ 即可。它通过比较“原模型输出分布”和“跳过该层 experts 后的模型输出分布”之间的 KL divergence 来量化这一层的重要程度；差异越大，说明这一层越重要，于是 $\alpha^{(l)}$ 越大
+> 先在离线阶段计算每一层的全局重要性 $α^{(l)}$，推理阶段直接使用预先算好的 $\alpha^{(l)}$ 即可。它通过比较“原模型输出分布”和“跳过该层 experts 后的模型输出分布”之间的 KL divergence(KL散度) 来量化这一层的重要程度；差异越大，说明这一层越重要，于是 $\alpha^{(l)}$ 越大
 > 
 > 然后，在推理阶段，把局部的路由概率 $\pi_i^{(l)}$ 和全局的层重要性 $\alpha^{(l)}$ 结合起来，得到更准确的 expert importance score $s_i^{(l)}$，用于判断当前 token 在当前层中哪些 experts 可以被跳过，如果低于 threshold，会跳过这个 expert 的计算
 
 * $s_i^{(l)}$: 第 $l$ 层、第 $i$ 个 expert 对于当前 token 的 importance score（重要性分数）
 * $\alpha^{(l)}$: 第 $l$ 层的 globally-modulated factor（全局调制因子），用来反映 这一层的 experts 对最终预测的整体影响有多大
 * $N$: 校准数据集 $C=\{c_1,\dots,c_N\}$ 的样本数
+* $C$: 校准数据（calibration data）是从现有数据集里抽样得到的一小部分样本集合，用来做离线校准（offline calibration）
 * $prob_j$: 原始模型在第 j 个校准样本上的 输出概率分布 向量
 * $prob_j^{(l)}$: 在“跳过第 $l$ 层 experts”的修改模型上，第 j 个校准样本对应的 输出概率分布 向量
 * $D_{KL}(\cdot||\cdot)$: Kullback–Leibler divergence（KL 散度），用于衡量两个概率分布之间的差异
@@ -96,8 +97,12 @@ title: 'MoDES: Accelerating Mixture-of-Experts Multimodal Large Language Models 
 
 > **figure 3**
 > left: 文本和视觉token 在各层之间存在一致的分布差异
-> middle：文本 Token 的相似度较低且波动大，说明专家层对文本信息的更新幅度显著更大
-> right： 表示 tokens 和 FFN 权重之间的角度，视觉 Token 向量与权重矩阵中的这些行向量在几何空间上几乎是垂直的，所以矩阵相乘后的结果（更新量）就会非常小
+> 
+> middle：同一个 token，在进入 FFN/MoE 层之前的表示 和 经过 FFN/MoE 层之后的表示 之间的余弦相似度。纵轴是这一层里该模态 token 的相似度统计值。
+> 文本 Token 的相似度较低且波动大，说明专家层对文本信息的更新幅度显著更大
+> 
+> right： 进一步追问“为什么视觉 token 被 FFN 改得更少”。 表示 tokens 和 FFN 权重之间的角度，视觉 Token 向量与权重矩阵中的这些行向量在几何空间上几乎是垂直的，所以矩阵相乘后的结果（更新量）就会非常小（FFN 对视觉 token 的作用更弱）
+> 所以，在做 expert skipping 时，文本 token 通常应该被 更谨慎地（少）跳过，而视觉 token 可以 更激进地（多）跳过。
 > 
 > 这直接启发了作者设计 DMT（双模态阈值处理）：在推理时，给视觉 Token 设置更激进的跳过阈值，让它们更多地“绕过”专家层，从而在不损害精度的前提下大幅提速
 
